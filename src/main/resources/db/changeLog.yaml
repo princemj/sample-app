@@ -1,0 +1,53 @@
+databaseChangeLog:
+- changeSet:
+    id: create-users-table
+    author: prince
+    changes:
+    - createTable:
+        tableName: users
+        columns:
+        - column:
+            name: id
+            type: varchar(255)
+            constraints:
+              primaryKey: true
+              nullable: false
+        - column:
+            name: name
+            type: varchar(255)
+            constraints:
+              nullable: false
+        - column:
+            name: email_id
+            type: varchar(255)
+            constraints:
+              nullable: false
+        - column:
+            name: phone_number
+            type: varchar(255)
+            constraints:
+              nullable: false
+        - column:
+            name: created_at
+            type: timestamp
+            constraints:
+              nullable: false
+        - column:
+            name: updated_at
+            type: timestamp
+            constraints:
+              nullable: false
+    - createIndex:
+        columns:
+        - column:
+            name: email_id
+            type: varchar(255)
+        indexName: idx_users_email_id
+        tableName: users
+    - createIndex:
+        columns:
+        - column:
+            name: phone_number
+            type: varchar(255)
+        indexName: idx_users_phone_number
+        tableName: users

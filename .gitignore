@@ -1,0 +1,15 @@
+.idea
+.gradle
+build
+.DS_Store
+src/generated
+out/
+classes/
+benchmarks.txt
+newrelic
+dump.rdb
+*.iml
+bin/
+.classpath
+.settings/
+.project

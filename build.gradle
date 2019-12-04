@@ -1,0 +1,118 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        mavenLocal()
+        jcenter()
+        flatDir {
+            dirs 'libs'
+        }
+    }
+    dependencies {
+        classpath files('src/main/resources')
+        classpath 'org.postgresql:postgresql:42.2.8'
+        classpath 'org.liquibase:liquibase-core:3.6.3'
+        classpath 'com.github.jengelman.gradle.plugins:shadow:2.0.4'
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:4.0.0"
+        classpath "org.liquibase:liquibase-gradle-plugin:2.0.2"
+    }
+}
+
+plugins {
+    id 'org.liquibase.gradle' version '2.0.2'
+}
+
+group 'com.sample'
+
+apply plugin: 'java'
+apply plugin: 'maven-publish'
+apply plugin: "com.jfrog.artifactory"
+apply plugin: 'com.github.johnrengelman.shadow'
+
+repositories {
+    mavenCentral()
+    mavenLocal()
+    jcenter()
+    flatDir {
+        dirs 'libs'
+    }
+}
+
+dependencies {
+    compile 'org.liquibase:liquibase-core:3.6.3'
+    compile 'org.jdbi:jdbi:2.71'
+    compile 'org.postgresql:postgresql:42.2.8'
+    compile group: 'com.fasterxml.jackson.core', name: 'jackson-databind', version: '2.9.7'
+    compile group: 'com.fasterxml.jackson.dataformat', name: 'jackson-dataformat-yaml', version: '2.9.7'
+    compile 'com.google.code.gson:gson:2.8.5'
+    compile 'javax.validation:validation-api:2.0.1.Final'
+    compile 'com.sparkjava:spark-core:2.7.2'
+    compile 'com.zaxxer:HikariCP:2.6.3'
+    liquibaseRuntime 'org.liquibase:liquibase-core:3.8.1'
+    liquibaseRuntime 'org.liquibase:liquibase-groovy-dsl:2.0.1'
+    liquibaseRuntime 'javax.xml.bind:jaxb-api:2.3.1'
+    liquibaseRuntime 'org.postgresql:postgresql:42.2.8'
+    liquibaseRuntime 'org.yaml:snakeyaml:1.25'
+}
+
+task startServer(type: JavaExec) {
+    main = "com.sample.servers.SampleServer"
+    description = "Starts the server."
+    classpath = sourceSets.main.runtimeClasspath
+    jvmArgs = ["-Xdebug", "-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=5094"]
+    systemProperties = [
+            "user.timezone": "UTC"
+    ]
+}
+
+def changeLog = "$projectDir/src/main/resources/db/changeLog.yaml"
+
+liquibase {
+    activities {
+        main {
+            changeLogFile changeLog
+            url 'jdbc:postgresql://localhost:5432/sample'
+            username 'test'
+            password 'password'
+        }
+    }
+    runList = 'main'
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs = ["src/main/java/"]
+        }
+    }
+}
+
+publishing {
+    publications {
+        shadow(MavenPublication) { publication ->
+            project.shadow.component(publication)
+        }
+    }
+}
+
+shadowJar {
+    archiveName = project.name + ".jar"
+    exclude "config.properties"
+    exclude "test/"
+    manifest {
+        attributes "Main-Class": "com.sample.servers.SampleServer"
+    }
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': "com.sample.servers.SampleServer"
+    }
+
+    from {
+        configurations.compile.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+}
+
+clean {
+    delete "$projectDir/src/generated"
+}
