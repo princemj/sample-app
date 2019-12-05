@@ -3,9 +3,6 @@ buildscript {
         mavenCentral()
         mavenLocal()
         jcenter()
-        flatDir {
-            dirs 'libs'
-        }
     }
     dependencies {
         classpath files('src/main/resources')
@@ -32,9 +29,6 @@ repositories {
     mavenCentral()
     mavenLocal()
     jcenter()
-    flatDir {
-        dirs 'libs'
-    }
 }
 
 dependencies {
@@ -62,20 +56,6 @@ task startServer(type: JavaExec) {
     systemProperties = [
             "user.timezone": "UTC"
     ]
-}
-
-def changeLog = "$projectDir/src/main/resources/db/changeLog.yaml"
-
-liquibase {
-    activities {
-        main {
-            changeLogFile changeLog
-            url 'jdbc:postgresql://localhost:5432/sample'
-            username 'test'
-            password 'password'
-        }
-    }
-    runList = 'main'
 }
 
 sourceSets {

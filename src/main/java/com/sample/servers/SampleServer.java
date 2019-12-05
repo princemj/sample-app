@@ -6,7 +6,17 @@ import com.sample.util.EnvironmentConfiguration;
 import com.sample.persistence.UserRepository;
 import com.sample.util.JsonTransformer;
 import com.zaxxer.hikari.HikariDataSource;
+import liquibase.Liquibase;
+import liquibase.changelog.DatabaseChangeLog;
+import liquibase.database.Database;
+import liquibase.database.DatabaseFactory;
+import liquibase.database.jvm.JdbcConnection;
+import liquibase.exception.DatabaseException;
+import liquibase.resource.FileSystemResourceAccessor;
 import org.postgresql.ds.PGSimpleDataSource;
+
+import java.sql.Connection;
+import java.sql.SQLException;
 
 import static spark.Spark.*;
 
@@ -16,11 +26,12 @@ public class SampleServer {
 
         ApplicationConfiguration appConfig = new EnvironmentConfiguration();
         String appPort = appConfig.getValueAsString("APP_SERVICE_PORT");
+        HikariDataSource hikariDataSource = getHikariDataSource(appConfig);
         System.out.println("Running Server at " + appPort);
         port(Integer.parseInt(appPort));
 
 //      Persistence
-        UserRepository userRepository = new UserRepository(getHikariDataSource(appConfig));
+        UserRepository userRepository = new UserRepository(hikariDataSource);
 
 //      Commands
         JsonTransformer transformer = new JsonTransformer();
@@ -45,11 +56,24 @@ public class SampleServer {
         pgSimpleDataSource.setPassword(dbPassword);
         pgSimpleDataSource.setSocketTimeout(dbTimeout);
         pgSimpleDataSource.setConnectTimeout(dbTimeout);
-
+        runMigration(pgSimpleDataSource);
         HikariDataSource hikariDataSource = new HikariDataSource();
         hikariDataSource.setDataSource(pgSimpleDataSource);
         hikariDataSource.setMaximumPoolSize(dbPoolSize);
         hikariDataSource.setPoolName(dbPoolName);
         return hikariDataSource;
+    }
+
+    private static void runMigration(PGSimpleDataSource pgSimpleDataSource) {
+        Liquibase liquibase = null;
+        try {
+            System.out.println("Running Migrations");
+            DatabaseChangeLog dbChangeLog = new DatabaseChangeLog();
+            Database database = DatabaseFactory.getInstance().findCorrectDatabaseImplementation(new JdbcConnection(pgSimpleDataSource.getConnection()));
+            liquibase = new Liquibase(dbChangeLog, new FileSystemResourceAccessor(), database);
+            liquibase.update("Run Migration");
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 }
